@@ -1,6 +1,7 @@
 import { createAppAuth } from "@octokit/auth-app";
 
 import type { AppEnv } from "../config/env.js";
+import type { AppObservability } from "../observability/types.js";
 import type { GitHubPullRequestFile } from "../types/github.js";
 import type { AppLogger } from "../utils/logger.js";
 
@@ -105,6 +106,7 @@ export class GitHubApiClient {
   constructor(
     private readonly env: AppEnv,
     private readonly logger: AppLogger,
+    private readonly observability: AppObservability,
   ) {
     this.auth = createAppAuth({
       appId: this.env.GITHUB_APP_ID,
@@ -133,6 +135,7 @@ export class GitHubApiClient {
     installationId: number,
     method: "GET" | "POST" | "PATCH",
     path: string,
+    operation: string,
     body?: unknown,
   ): Promise<T> {
     const token = await this.getInstallationToken(installationId);
@@ -153,7 +156,15 @@ export class GitHubApiClient {
       requestInit.body = JSON.stringify(body);
     }
 
-    const response = await fetch(url, requestInit);
+    let response: Response;
+    try {
+      response = await fetch(url, requestInit);
+    } catch (error) {
+      this.observability.metrics.incrementGitHubApiCall(operation, "error");
+      throw error;
+    }
+
+    this.observability.metrics.incrementGitHubApiCall(operation, String(response.status));
 
     if (!response.ok) {
       const responseBody = await response.text();
@@ -179,6 +190,7 @@ export class GitHubApiClient {
       installationId,
       "GET",
       `/repos/${owner}/${repo}/issues/${issueNumber}/comments?per_page=100`,
+      "list_issue_comments",
     );
 
     return data
@@ -201,6 +213,7 @@ export class GitHubApiClient {
         input.installationId,
         "PATCH",
         `/repos/${input.owner}/${input.repo}/issues/comments/${existingComment.id}`,
+        "update_issue_comment",
         { body: input.body },
       );
 
@@ -219,6 +232,7 @@ export class GitHubApiClient {
       input.installationId,
       "POST",
       `/repos/${input.owner}/${input.repo}/issues/${input.issueNumber}/comments`,
+      "create_issue_comment",
       { body: input.body },
     );
 
@@ -236,6 +250,7 @@ export class GitHubApiClient {
       input.installationId,
       "POST",
       `/repos/${input.owner}/${input.repo}/check-runs`,
+      "create_check_run",
       {
         name: input.name,
         head_sha: input.headSha,
@@ -274,6 +289,7 @@ export class GitHubApiClient {
         installationId,
         "GET",
         `/repos/${owner}/${repo}/pulls/${pullNumber}/files?per_page=100&page=${page}`,
+        "list_pull_request_files",
       );
 
       const parsedPage = data

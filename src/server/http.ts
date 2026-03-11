@@ -1,6 +1,8 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 
 import type { AppEnv } from "../config/env.js";
+import { FileInspectionAlertMonitor } from "../observability/file-inspection-alert.js";
+import { MetricsRegistry } from "../observability/metrics.js";
 import type { AppLogger } from "../utils/logger.js";
 import { createGitHubWebhookHandler } from "../webhooks/handler.js";
 
@@ -20,6 +22,19 @@ function sendJsonResponse(res: ServerResponse, statusCode: number, data: unknown
     "content-length": Buffer.byteLength(body).toString(),
   });
   res.end(body);
+}
+
+function sendTextResponse(
+  res: ServerResponse,
+  statusCode: number,
+  data: string,
+  contentType: string,
+): void {
+  res.writeHead(statusCode, {
+    "content-type": contentType,
+    "content-length": Buffer.byteLength(data).toString(),
+  });
+  res.end(data);
 }
 
 async function readRawBody(req: IncomingMessage): Promise<string> {
@@ -51,37 +66,68 @@ async function readRawBody(req: IncomingMessage): Promise<string> {
 }
 
 export function createHttpServer(env: AppEnv, logger: AppLogger) {
-  const processGitHubWebhook = createGitHubWebhookHandler(env, logger);
+  const metrics = new MetricsRegistry();
+  const fileInspectionAlertMonitor = new FileInspectionAlertMonitor({
+    threshold: env.ALERT_FILE_INSPECTION_FAILURE_THRESHOLD,
+    windowMs: env.ALERT_FILE_INSPECTION_FAILURE_WINDOW_SECONDS * 1000,
+  });
+
+  const processGitHubWebhook = createGitHubWebhookHandler(env, logger, {
+    metrics,
+    fileInspectionAlertMonitor,
+  });
 
   return createServer(async (req, res) => {
+    const method = req.method ?? "UNKNOWN";
+    const routePath = req.url?.split("?")[0] ?? "unknown";
+
+    const respondJson = (statusCode: number, data: unknown): void => {
+      metrics.incrementHttpRequest(method, routePath, statusCode);
+      sendJsonResponse(res, statusCode, data);
+    };
+
+    const respondText = (statusCode: number, body: string, contentType: string): void => {
+      metrics.incrementHttpRequest(method, routePath, statusCode);
+      sendTextResponse(res, statusCode, body, contentType);
+    };
+
     if (!req.url || !req.method) {
-      sendJsonResponse(res, 400, { error: "Invalid request" });
+      respondJson(400, { error: "Invalid request" });
       return;
     }
 
-    if (req.method === "GET" && req.url === "/health") {
-      sendJsonResponse(res, 200, { status: "ok" });
+    if (req.method === "GET" && routePath === "/health") {
+      respondJson(200, { status: "ok" });
       return;
     }
 
-    if (req.method === "POST" && req.url === "/webhooks/github") {
+    if (req.method === "GET" && routePath === "/metrics") {
+      respondText(
+        200,
+        metrics.renderPrometheus(),
+        "text/plain; version=0.0.4; charset=utf-8",
+      );
+      return;
+    }
+
+    if (req.method === "POST" && routePath === "/webhooks/github") {
       try {
         const rawBody = await readRawBody(req);
         const result = await processGitHubWebhook(req.headers, rawBody);
-        sendJsonResponse(res, result.statusCode, { message: result.message });
+        respondJson(result.statusCode, { message: result.message });
       } catch (error) {
         if (error instanceof RequestBodyTooLargeError) {
-          sendJsonResponse(res, 413, { error: error.message });
+          respondJson(413, { error: error.message });
           return;
         }
 
         logger.error({ err: error }, "Failed to process GitHub webhook request");
-        sendJsonResponse(res, 500, { error: "Internal server error" });
+        respondJson(500, { error: "Internal server error" });
       }
 
       return;
     }
 
-    sendJsonResponse(res, 404, { error: "Not found" });
+    respondJson(404, { error: "Not found" });
   });
 }

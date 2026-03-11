@@ -20,6 +20,7 @@ function createEnv(): AppEnv {
     NODE_ENV: "test",
     PORT: 0,
     LOG_LEVEL: "silent",
+    LOG_FILE_PATH: "",
     GITHUB_API_BASE_URL: "https://api.github.com",
     GITHUB_APP_ID: 123,
     GITHUB_WEBHOOK_SECRET: webhookSecret,
@@ -29,6 +30,8 @@ function createEnv(): AppEnv {
     FIREWALL_MAX_CHANGED_FILES_BLOCK: 75,
     FIREWALL_MAX_CHANGED_LINES_WARN: 800,
     FIREWALL_MAX_CHANGED_LINES_BLOCK: 2000,
+    ALERT_FILE_INSPECTION_FAILURE_THRESHOLD: 5,
+    ALERT_FILE_INSPECTION_FAILURE_WINDOW_SECONDS: 300,
   };
 }
 
@@ -65,6 +68,32 @@ function postJson(port: number, path: string, headers: Record<string, string>, b
 
     req.on("error", reject);
     req.write(body);
+    req.end();
+  });
+}
+
+function getText(port: number, path: string): Promise<HttpResponse> {
+  return new Promise((resolve, reject) => {
+    const req = request(
+      {
+        hostname: "127.0.0.1",
+        port,
+        path,
+        method: "GET",
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (chunk) => chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk));
+        res.on("end", () => {
+          resolve({
+            statusCode: res.statusCode ?? 0,
+            body: Buffer.concat(chunks).toString("utf8"),
+          });
+        });
+      },
+    );
+
+    req.on("error", reject);
     req.end();
   });
 }
@@ -182,5 +211,21 @@ describe("GitHub webhook HTTP integration", () => {
 
     expect(response.statusCode).toBe(401);
     expect(JSON.parse(response.body)).toEqual({ message: "Invalid webhook signature" });
+  });
+
+  it("exposes prometheus metrics", async () => {
+    const env = createEnv();
+    const logger = createLogger({ LOG_LEVEL: "silent", NODE_ENV: "test" });
+    const server = createHttpServer(env, logger);
+    serversToClose.push(server);
+
+    const port = await listenEphemeral(server);
+    const healthResponse = await getText(port, "/health");
+    expect(healthResponse.statusCode).toBe(200);
+
+    const metricsResponse = await getText(port, "/metrics");
+    expect(metricsResponse.statusCode).toBe(200);
+    expect(metricsResponse.body).toContain("agent_pr_firewall_http_requests_total");
+    expect(metricsResponse.body).toContain('path="/health"');
   });
 });

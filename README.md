@@ -63,12 +63,15 @@ Copy values from `.env.example` into your shell environment:
 
 - `PORT` (default `3000`)
 - `LOG_LEVEL` (default `info`)
+- `LOG_FILE_PATH` (optional file sink for JSON logs)
 - `GITHUB_API_BASE_URL` (default `https://api.github.com`)
 - `FIREWALL_PROTECTED_PATH_PREFIXES` (comma-separated path prefixes)
 - `FIREWALL_MAX_CHANGED_FILES_WARN`
 - `FIREWALL_MAX_CHANGED_FILES_BLOCK`
 - `FIREWALL_MAX_CHANGED_LINES_WARN`
 - `FIREWALL_MAX_CHANGED_LINES_BLOCK`
+- `ALERT_FILE_INSPECTION_FAILURE_THRESHOLD`
+- `ALERT_FILE_INSPECTION_FAILURE_WINDOW_SECONDS`
 - `GITHUB_APP_ID`
 - `GITHUB_WEBHOOK_SECRET`
 - `GITHUB_PRIVATE_KEY` (supports `\n`-escaped format)
@@ -86,6 +89,12 @@ Health check:
 
 ```bash
 curl http://localhost:3000/health
+```
+
+Metrics:
+
+```bash
+curl http://localhost:3000/metrics
 ```
 
 Build and run:
@@ -117,6 +126,34 @@ Response behavior:
 - `401` invalid signature
 - `400` bad headers/payload
 - `202` accepted (processed or ignored unsupported event)
+
+## Deployment
+
+Container build:
+
+```bash
+docker build -t agent-pr-firewall:latest .
+docker run --rm -p 3000:3000 --env-file .env agent-pr-firewall:latest
+```
+
+For production compose and hardening steps, see [deploy/README.md](C:/Users/gamin/agent-pr-firewall/deploy/README.md).
+
+## GitHub Hardening
+
+Apply branch protection and required check:
+
+```powershell
+$env:GITHUB_TOKEN="<token-with-repo-admin>"
+pwsh ./scripts/setup-github-hardening.ps1 -Owner <org-or-user> -Repo <repo> -Branch main -WebhookUrl https://<your-domain>
+```
+
+GitHub App settings that must be enabled:
+
+- Webhook event: `pull_request`
+- Permissions:
+  - Pull requests: `Read`
+  - Issues: `Write`
+  - Checks: `Write`
 
 ## Decision Mapping
 

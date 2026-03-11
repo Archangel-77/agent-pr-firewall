@@ -5,6 +5,7 @@ import { Webhooks } from "@octokit/webhooks";
 import type { AppEnv } from "../config/env.js";
 import { GitHubApiClient } from "../github/client.js";
 import { PullRequestReporter } from "../github/reporter.js";
+import type { AppObservability } from "../observability/types.js";
 import type { PullRequestWebhookPayload } from "../types/github.js";
 import type { AppLogger } from "../utils/logger.js";
 import { handlePullRequestEvent } from "./pull-request.js";
@@ -69,9 +70,13 @@ function isPullRequestPayload(payload: unknown): payload is PullRequestWebhookPa
   );
 }
 
-export function createGitHubWebhookHandler(env: AppEnv, logger: AppLogger) {
+export function createGitHubWebhookHandler(
+  env: AppEnv,
+  logger: AppLogger,
+  observability: AppObservability,
+) {
   const webhooks = new Webhooks({ secret: env.GITHUB_WEBHOOK_SECRET });
-  const githubClient = new GitHubApiClient(env, logger);
+  const githubClient = new GitHubApiClient(env, logger, observability);
   const reporter = new PullRequestReporter(githubClient, logger);
 
   return async function processGitHubWebhook(
@@ -83,6 +88,7 @@ export function createGitHubWebhookHandler(env: AppEnv, logger: AppLogger) {
     const signature = getHeader(headers, "x-hub-signature-256");
 
     if (!eventName || !deliveryId || !signature) {
+      observability.metrics.incrementWebhookEvent("unknown", "missing_headers");
       return {
         statusCode: 400,
         message: "Missing required GitHub webhook headers",
@@ -92,6 +98,7 @@ export function createGitHubWebhookHandler(env: AppEnv, logger: AppLogger) {
     const isValidSignature = await webhooks.verify(rawBody, signature);
 
     if (!isValidSignature) {
+      observability.metrics.incrementWebhookEvent(eventName, "invalid_signature");
       logger.warn({ deliveryId, eventName }, "Rejected webhook with invalid signature");
       return {
         statusCode: 401,
@@ -103,6 +110,7 @@ export function createGitHubWebhookHandler(env: AppEnv, logger: AppLogger) {
     try {
       payload = JSON.parse(rawBody) as unknown;
     } catch (error) {
+      observability.metrics.incrementWebhookEvent(eventName, "invalid_json");
       logger.warn({ deliveryId, eventName, err: error }, "Webhook payload is not valid JSON");
       return {
         statusCode: 400,
@@ -111,6 +119,7 @@ export function createGitHubWebhookHandler(env: AppEnv, logger: AppLogger) {
     }
 
     if (eventName !== "pull_request") {
+      observability.metrics.incrementWebhookEvent(eventName, "ignored_event");
       logger.debug({ deliveryId, eventName }, "Ignoring unsupported GitHub event");
       return {
         statusCode: 202,
@@ -119,6 +128,7 @@ export function createGitHubWebhookHandler(env: AppEnv, logger: AppLogger) {
     }
 
     if (!isPullRequestPayload(payload)) {
+      observability.metrics.incrementWebhookEvent(eventName, "invalid_payload");
       logger.warn({ deliveryId }, "pull_request payload did not match expected shape");
       return {
         statusCode: 400,
@@ -136,8 +146,10 @@ export function createGitHubWebhookHandler(env: AppEnv, logger: AppLogger) {
         warnChangedLines: env.FIREWALL_MAX_CHANGED_LINES_WARN,
         blockChangedLines: env.FIREWALL_MAX_CHANGED_LINES_BLOCK,
       },
+      observability,
     });
 
+    observability.metrics.incrementWebhookEvent(eventName, "accepted");
     return {
       statusCode: 202,
       message: "Accepted",

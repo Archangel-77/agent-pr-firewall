@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { AppObservability } from "../../../src/observability/types.js";
 import type { PullRequestReporter } from "../../../src/github/reporter.js";
 import type { PolicyEvaluation } from "../../../src/policies/types.js";
 import type { PullRequestWebhookPayload } from "../../../src/types/github.js";
@@ -36,10 +37,27 @@ function createLogger(): AppLogger {
   } as unknown as AppLogger;
 }
 
+function createObservability(): AppObservability {
+  return {
+    metrics: {
+      incrementFileInspectionFailure: vi.fn(),
+      incrementPolicyDecision: vi.fn(),
+      incrementPolicyFinding: vi.fn(),
+    },
+    fileInspectionAlertMonitor: {
+      recordFailure: vi.fn(() => ({
+        shouldAlert: false,
+        recentFailureCount: 1,
+      })),
+    },
+  } as unknown as AppObservability;
+}
+
 describe("handlePullRequestEvent", () => {
   it("publishes a report for supported actions", async () => {
     const payload = createPayload();
     const logger = createLogger();
+    const observability = createObservability();
     const report = vi.fn<(_: { evaluation: PolicyEvaluation }) => Promise<void>>().mockResolvedValue();
     const listPullRequestFiles = vi
       .fn<(_: number, __: string, ___: string, ____: number) => Promise<{ filename: string; status: string }[]>>()
@@ -59,6 +77,7 @@ describe("handlePullRequestEvent", () => {
         warnChangedLines: 800,
         blockChangedLines: 2000,
       },
+      observability,
     });
 
     expect(listPullRequestFiles).toHaveBeenCalledOnce();
@@ -69,6 +88,7 @@ describe("handlePullRequestEvent", () => {
   it("blocks evaluation when file inspection fails", async () => {
     const payload = createPayload();
     const logger = createLogger();
+    const observability = createObservability();
     const report = vi.fn<(_: { evaluation: PolicyEvaluation }) => Promise<void>>().mockResolvedValue();
     const listPullRequestFiles = vi
       .fn<(_: number, __: string, ___: string, ____: number) => Promise<{ filename: string; status: string }[]>>()
@@ -88,6 +108,7 @@ describe("handlePullRequestEvent", () => {
         warnChangedLines: 800,
         blockChangedLines: 2000,
       },
+      observability,
     });
 
     const evaluation = report.mock.calls[0]?.[0].evaluation;

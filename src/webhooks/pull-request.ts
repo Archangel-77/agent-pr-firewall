@@ -1,5 +1,6 @@
 import { evaluatePolicies } from "../policies/engine.js";
 import type { GitHubApiClient } from "../github/client.js";
+import type { AppObservability } from "../observability/types.js";
 import type { PolicyEvaluation } from "../policies/types.js";
 import type { GitHubPullRequestFile, PullRequestWebhookPayload } from "../types/github.js";
 import type { AppLogger } from "../utils/logger.js";
@@ -27,6 +28,7 @@ export interface PullRequestEventDependencies {
     warnChangedLines: number;
     blockChangedLines: number;
   };
+  observability: AppObservability;
 }
 
 function withFileInspectionFailure(evaluation: PolicyEvaluation): PolicyEvaluation {
@@ -71,6 +73,19 @@ export async function handlePullRequestEvent(
         number,
       );
     } catch (error) {
+      dependencies.observability.metrics.incrementFileInspectionFailure();
+      const alertResult = dependencies.observability.fileInspectionAlertMonitor.recordFailure();
+      if (alertResult.shouldAlert) {
+        logger.error(
+          {
+            repository: repository.full_name,
+            pullRequestNumber: number,
+            recentFailureCount: alertResult.recentFailureCount,
+          },
+          "File inspection failure threshold reached",
+        );
+      }
+
       logger.warn(
         {
           repository: repository.full_name,
@@ -94,6 +109,11 @@ export async function handlePullRequestEvent(
 
   if (fileInspectionFailed) {
     evaluation = withFileInspectionFailure(evaluation);
+  }
+
+  dependencies.observability.metrics.incrementPolicyDecision(evaluation.decision);
+  for (const finding of evaluation.findings) {
+    dependencies.observability.metrics.incrementPolicyFinding(finding.policyId, finding.severity);
   }
 
   logger.info(
