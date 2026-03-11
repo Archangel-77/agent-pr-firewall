@@ -10,6 +10,16 @@ const logLevels = [
   "silent",
 ] as const;
 
+const defaultProtectedPathPrefixes =
+  ".github/workflows/,infra/,terraform/,deploy/,ops/,production/";
+
+function parseCommaSeparatedPrefixes(value: string): string[] {
+  return value
+    .split(",")
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0);
+}
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
@@ -18,6 +28,10 @@ const envSchema = z.object({
   GITHUB_APP_ID: z.coerce.number().int().positive(),
   GITHUB_WEBHOOK_SECRET: z.string().min(1),
   GITHUB_PRIVATE_KEY: z.string().min(1),
+  FIREWALL_PROTECTED_PATH_PREFIXES: z
+    .string()
+    .default(defaultProtectedPathPrefixes)
+    .transform((value) => parseCommaSeparatedPrefixes(value)),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

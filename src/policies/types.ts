@@ -1,4 +1,4 @@
-import type { PullRequestWebhookPayload } from "../types/github.js";
+import type { GitHubPullRequestFile, PullRequestWebhookPayload } from "../types/github.js";
 
 export type PolicySeverity = "warn" | "block";
 export type PolicyDecision = "pass" | PolicySeverity;
@@ -12,6 +12,10 @@ export interface PolicyFinding {
 
 export interface PolicyContext {
   payload: PullRequestWebhookPayload;
+  pullRequestFiles: readonly GitHubPullRequestFile[];
+  settings: {
+    protectedPathPrefixes: readonly string[];
+  };
 }
 
 export interface Policy {

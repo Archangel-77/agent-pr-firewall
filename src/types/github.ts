@@ -29,6 +29,12 @@ export interface GitHubPullRequest {
   user: GitHubUser;
 }
 
+export interface GitHubPullRequestFile {
+  filename: string;
+  status: string;
+  patch?: string;
+}
+
 export interface PullRequestWebhookPayload {
   action: string;
   number: number;

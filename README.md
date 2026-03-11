@@ -14,6 +14,9 @@ GitHub App webhook service that evaluates pull requests against firewall policie
   - `ready_for_review`
 - Evaluates built-in policies:
   - `draft-pr` (block)
+  - `issue-reference` (block if PR body has no issue/ticket reference)
+  - `protected-paths` (block if protected directories are changed)
+  - `secret-patterns` (block if secret-like additions appear in diffs)
   - `pr-description` (warn if description is too short)
 - Publishes results to GitHub:
   - Upserts a managed PR comment
@@ -60,6 +63,7 @@ Copy values from `.env.example` into your shell environment:
 - `PORT` (default `3000`)
 - `LOG_LEVEL` (default `info`)
 - `GITHUB_API_BASE_URL` (default `https://api.github.com`)
+- `FIREWALL_PROTECTED_PATH_PREFIXES` (comma-separated path prefixes)
 - `GITHUB_APP_ID`
 - `GITHUB_WEBHOOK_SECRET`
 - `GITHUB_PRIVATE_KEY` (supports `\n`-escaped format)
@@ -120,4 +124,5 @@ Policy decision to Check Run conclusion:
 ## Notes
 
 - If a webhook payload has no `installation.id`, policy evaluation still runs but GitHub report publishing is skipped.
+- If pull request file inspection fails, the firewall returns a `block` decision (`file-inspection`) to fail closed.
 - The managed PR comment is updated in place using an internal marker to avoid comment spam.

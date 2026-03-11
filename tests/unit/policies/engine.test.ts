@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { evaluatePolicies } from "../../../src/policies/engine.js";
+import type { PolicyContext } from "../../../src/policies/types.js";
 import type { PullRequestWebhookPayload } from "../../../src/types/github.js";
 
 function createPayload(
@@ -18,7 +19,7 @@ function createPayload(
     pull_request: {
       html_url: "https://github.com/acme/agent-pr-firewall/pull/42",
       title: "Add policy engine",
-      body: "This PR introduces a policy evaluation engine and report publishing.",
+      body: "Implements policy evaluation and reporting. Fixes #123.",
       draft: false,
       head: { sha: "abc123" },
       user: { login: "octocat" },
@@ -27,10 +28,20 @@ function createPayload(
   };
 }
 
+function createContext(payload: PullRequestWebhookPayload): PolicyContext {
+  return {
+    payload,
+    pullRequestFiles: [],
+    settings: {
+      protectedPathPrefixes: [".github/workflows/", "infra/"],
+    },
+  };
+}
+
 describe("evaluatePolicies", () => {
   it("returns pass when no policies trigger", async () => {
     const payload = createPayload();
-    const result = await evaluatePolicies({ payload });
+    const result = await evaluatePolicies(createContext(payload));
 
     expect(result.decision).toBe("pass");
     expect(result.findings).toEqual([]);
@@ -40,11 +51,11 @@ describe("evaluatePolicies", () => {
     const payload = createPayload({
       pull_request: {
         ...createPayload().pull_request,
-        body: "short",
+        body: "See #123 short",
       },
     });
 
-    const result = await evaluatePolicies({ payload });
+    const result = await evaluatePolicies(createContext(payload));
     expect(result.decision).toBe("warn");
     expect(result.findings.some((finding) => finding.policyId === "pr-description")).toBe(true);
   });
@@ -57,7 +68,7 @@ describe("evaluatePolicies", () => {
       },
     });
 
-    const result = await evaluatePolicies({ payload });
+    const result = await evaluatePolicies(createContext(payload));
     expect(result.decision).toBe("block");
     expect(result.findings.some((finding) => finding.policyId === "draft-pr")).toBe(true);
   });

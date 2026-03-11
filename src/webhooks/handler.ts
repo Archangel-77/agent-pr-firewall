@@ -126,7 +126,11 @@ export function createGitHubWebhookHandler(env: AppEnv, logger: AppLogger) {
       };
     }
 
-    await handlePullRequestEvent(payload, logger, { reporter });
+    await handlePullRequestEvent(payload, logger, {
+      githubClient,
+      reporter,
+      protectedPathPrefixes: env.FIREWALL_PROTECTED_PATH_PREFIXES,
+    });
 
     return {
       statusCode: 202,

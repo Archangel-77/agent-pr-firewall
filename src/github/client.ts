@@ -1,6 +1,7 @@
 import { createAppAuth } from "@octokit/auth-app";
 
 import type { AppEnv } from "../config/env.js";
+import type { GitHubPullRequestFile } from "../types/github.js";
 import type { AppLogger } from "../utils/logger.js";
 
 const GITHUB_ACCEPT_HEADER = "application/vnd.github+json";
@@ -53,6 +54,31 @@ function parseIssueComment(value: unknown): IssueComment | null {
     id: value.id,
     body: value.body,
   };
+}
+
+function parsePullRequestFile(value: unknown): GitHubPullRequestFile | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  if (typeof value.filename !== "string" || typeof value.status !== "string") {
+    return null;
+  }
+
+  if (value.patch !== undefined && typeof value.patch !== "string") {
+    return null;
+  }
+
+  const file: GitHubPullRequestFile = {
+    filename: value.filename,
+    status: value.status,
+  };
+
+  if (typeof value.patch === "string") {
+    file.patch = value.patch;
+  }
+
+  return file;
 }
 
 export class GitHubApiClient {
@@ -214,5 +240,37 @@ export class GitHubApiClient {
       },
       "Created check run",
     );
+  }
+
+  async listPullRequestFiles(
+    installationId: number,
+    owner: string,
+    repo: string,
+    pullNumber: number,
+  ): Promise<GitHubPullRequestFile[]> {
+    const files: GitHubPullRequestFile[] = [];
+    let page = 1;
+
+    while (true) {
+      const data = await this.requestJson<unknown[]>(
+        installationId,
+        "GET",
+        `/repos/${owner}/${repo}/pulls/${pullNumber}/files?per_page=100&page=${page}`,
+      );
+
+      const parsedPage = data
+        .map((item) => parsePullRequestFile(item))
+        .filter((item): item is GitHubPullRequestFile => item !== null);
+
+      files.push(...parsedPage);
+
+      if (data.length < 100) {
+        break;
+      }
+
+      page += 1;
+    }
+
+    return files;
   }
 }

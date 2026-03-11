@@ -1,5 +1,7 @@
 import { evaluatePolicies } from "../policies/engine.js";
-import type { PullRequestWebhookPayload } from "../types/github.js";
+import type { GitHubApiClient } from "../github/client.js";
+import type { PolicyEvaluation } from "../policies/types.js";
+import type { GitHubPullRequestFile, PullRequestWebhookPayload } from "../types/github.js";
 import type { AppLogger } from "../utils/logger.js";
 import type { PullRequestReporter } from "../github/reporter.js";
 
@@ -16,7 +18,24 @@ export function isSupportedPullRequestAction(action: string): boolean {
 }
 
 export interface PullRequestEventDependencies {
+  githubClient: GitHubApiClient;
   reporter: PullRequestReporter;
+  protectedPathPrefixes: readonly string[];
+}
+
+function withFileInspectionFailure(evaluation: PolicyEvaluation): PolicyEvaluation {
+  return {
+    decision: "block",
+    findings: [
+      ...evaluation.findings,
+      {
+        policyId: "file-inspection",
+        severity: "block",
+        title: "Could not inspect changed files",
+        message: "GitHub API file inspection failed. Re-run the firewall check when GitHub API is available.",
+      },
+    ],
+  };
 }
 
 export async function handlePullRequestEvent(
@@ -25,6 +44,7 @@ export async function handlePullRequestEvent(
   dependencies: PullRequestEventDependencies,
 ): Promise<void> {
   const { action, number, repository, pull_request: pullRequest } = payload;
+  const installationId = payload.installation?.id;
 
   if (!isSupportedPullRequestAction(action)) {
     logger.debug(
@@ -34,7 +54,40 @@ export async function handlePullRequestEvent(
     return;
   }
 
-  const evaluation = await evaluatePolicies({ payload });
+  let pullRequestFiles: GitHubPullRequestFile[] = [];
+  let fileInspectionFailed = false;
+  if (installationId) {
+    try {
+      pullRequestFiles = await dependencies.githubClient.listPullRequestFiles(
+        installationId,
+        repository.owner.login,
+        repository.name,
+        number,
+      );
+    } catch (error) {
+      logger.warn(
+        {
+          repository: repository.full_name,
+          pullRequestNumber: number,
+          err: error,
+        },
+        "Failed to list pull request files; marking evaluation as blocked",
+      );
+      fileInspectionFailed = true;
+    }
+  }
+
+  let evaluation = await evaluatePolicies({
+    payload,
+    pullRequestFiles,
+    settings: {
+      protectedPathPrefixes: dependencies.protectedPathPrefixes,
+    },
+  });
+
+  if (fileInspectionFailed) {
+    evaluation = withFileInspectionFailure(evaluation);
+  }
 
   logger.info(
     {
@@ -46,6 +99,7 @@ export async function handlePullRequestEvent(
       title: pullRequest.title,
       url: pullRequest.html_url,
       author: pullRequest.user.login,
+      changedFiles: pullRequestFiles.length,
       decision: evaluation.decision,
       findings: evaluation.findings.map((finding) => ({
         policyId: finding.policyId,
@@ -55,7 +109,6 @@ export async function handlePullRequestEvent(
     "Evaluated pull request policies",
   );
 
-  const installationId = payload.installation?.id;
   if (!installationId) {
     logger.warn(
       { repository: repository.full_name, pullRequestNumber: number },
