@@ -10,6 +10,8 @@ param(
   [string]$WebhookUrl = ""
 )
 
+$ErrorActionPreference = "Stop"
+
 if (-not $env:GITHUB_TOKEN) {
   throw "GITHUB_TOKEN environment variable is required. Use a token with repo admin access."
 }
@@ -43,7 +45,32 @@ $protectionBody = @{
 
 $protectionUrl = "https://api.github.com/repos/$Owner/$Repo/branches/$Branch/protection"
 Write-Host "Applying branch protection for $Owner/$Repo branch '$Branch'..."
-Invoke-RestMethod -Method Put -Uri $protectionUrl -Headers $headers -Body $protectionBody | Out-Null
+
+try {
+  Invoke-RestMethod -Method Put -Uri $protectionUrl -Headers $headers -Body $protectionBody -ErrorAction Stop | Out-Null
+} catch {
+  $statusCode = $null
+  $responseBody = $null
+  if ($_.Exception.Response) {
+    $statusCode = [int]$_.Exception.Response.StatusCode
+    try {
+      $stream = $_.Exception.Response.GetResponseStream()
+      if ($stream) {
+        $reader = [System.IO.StreamReader]::new($stream)
+        $responseBody = $reader.ReadToEnd()
+      }
+    } catch {
+      $responseBody = $null
+    }
+  }
+
+  Write-Error "Failed to apply branch protection. HTTP status: $statusCode"
+  if ($responseBody) {
+    Write-Error "GitHub response: $responseBody"
+  }
+  throw "Branch protection setup failed. Verify GITHUB_TOKEN and repo admin permissions."
+}
+
 Write-Host "Branch protection applied. Required check: $RequiredCheck"
 
 Write-Host ""
