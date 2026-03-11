@@ -1,53 +1,30 @@
-# Launch Copy Kit
+# Launch Copy Kit (1-Day Blast, Problem -> Outcome)
 
-## 1) GitHub Release Copy (`v0.1.0`)
+## Canonical Links
 
-Title:
+- Repo: `https://github.com/Archangel-77/agent-pr-firewall`
+- Latest release: `https://github.com/Archangel-77/agent-pr-firewall/releases/tag/v0.1.1`
+- Quick start (README): `https://github.com/Archangel-77/agent-pr-firewall#local-run`
+- Proof PR with 2 passing checks: `https://github.com/Archangel-77/agent-pr-firewall/pull/2`
 
-`v0.1.0: PR firewall for policy-based merge protection`
+Use these same links in every post.
 
-Body:
-
-`agent-pr-firewall` is a GitHub App webhook service that evaluates pull requests and publishes a required governance check (`agent-pr-firewall`) before merge.
-
-What it does:
-
-- Verifies webhook signatures
-- Evaluates PR policies (`draft-pr`, `issue-reference`, `protected-paths`, `secret-patterns`, `pr-size`, `pr-description`)
-- Upserts managed PR comments
-- Creates check runs with pass/warn/block mapping
-- Exposes `/metrics` for Prometheus-style scraping
-
-Included in this release:
-
-- Docker + compose deployment artifacts
-- Branch protection automation script
-- Observability counters and alert signal for repeated file-inspection failures
-- Unit + integration tests for signed webhook flow
-
-Quick start:
-
-1. Deploy service
-2. Point GitHub App webhook to `/webhooks/github`
-3. Require check `agent-pr-firewall` on your protected branch
-
-## 2) X/Twitter Post
+## 1) X Post (T+0)
 
 Ship safer PRs when AI and humans code together.
 
-I open-sourced `agent-pr-firewall`: a GitHub App policy layer that blocks risky PRs before merge.
+I open-sourced `agent-pr-firewall`: a GitHub App policy layer that blocks risky PRs before merge and emits one required check.
 
-It checks for:
+It catches:
 - missing issue references
 - protected path edits
 - secret-like diff patterns
 - oversized PRs
 
-Outputs one required check: `agent-pr-firewall`.
+Repo: https://github.com/Archangel-77/agent-pr-firewall  
+Release: https://github.com/Archangel-77/agent-pr-firewall/releases/tag/v0.1.1
 
-Repo: <YOUR_REPO_URL>
-
-## 3) Reddit Post (`r/devops`, `r/github`)
+## 2) Reddit Post (`r/devops`) (T+15)
 
 Title:
 
@@ -64,8 +41,8 @@ With AI-assisted coding, we saw more high-risk PRs (large diffs, infra edits, mi
 What it does:
 
 - Evaluates PR policies and returns pass/warn/block
-- Posts a managed PR comment with findings
 - Publishes a required check run (`agent-pr-firewall`)
+- Optionally posts a managed PR comment with findings
 - Exposes `/metrics` for observability
 
 Current policies:
@@ -77,21 +54,43 @@ Current policies:
 - PR size warning/blocking
 - short description warning
 
-Would appreciate feedback on policy design and false-positive tuning.
+Would appreciate feedback on policy defaults and false-positive tuning.
 
-Repo: <YOUR_REPO_URL>
+Repo: https://github.com/Archangel-77/agent-pr-firewall  
+Release: https://github.com/Archangel-77/agent-pr-firewall/releases/tag/v0.1.1
 
-## 4) Hacker News (“Show HN”)
+## 3) Reddit Post (`r/github`) (T+30)
 
 Title:
 
-Show HN: Agent PR Firewall – policy checks that block risky GitHub PRs
+Built a GitHub App that adds one required PR governance check before merge
+
+Body:
+
+Open-sourced `agent-pr-firewall`, a GitHub App webhook service for pull request governance.
+
+It validates signed webhooks, evaluates PR policies, then publishes one check run (`agent-pr-firewall`) that can be required by branch protection.
+
+Main outcome:
+
+- Block risky PR patterns before merge
+- Keep governance in one check status
+- Keep decision behavior auditable
+
+Repo: https://github.com/Archangel-77/agent-pr-firewall  
+Release: https://github.com/Archangel-77/agent-pr-firewall/releases/tag/v0.1.1
+
+## 4) Hacker News (Show HN) (T+45)
+
+Title:
+
+Show HN: Agent PR Firewall - policy checks that block risky GitHub PRs
 
 Body:
 
 Built and open-sourced `agent-pr-firewall`, a GitHub App webhook service for merge governance.
 
-It runs policy checks on PR events and emits one check run (`agent-pr-firewall`) that can be required by branch protection.
+It evaluates pull request events and emits one check run (`agent-pr-firewall`) that can be required by branch protection.
 
 Focus:
 
@@ -104,20 +103,21 @@ Tech:
 
 - TypeScript + Octokit App auth
 - webhook signature verification
-- managed PR comment + check run
-- `/metrics` endpoint for counters
+- check run publishing + managed comment
+- `/metrics` endpoint
 
 Looking for feedback on policy defaults and operational ergonomics.
 
-Repo: <YOUR_REPO_URL>
+Repo: https://github.com/Archangel-77/agent-pr-firewall  
+Release: https://github.com/Archangel-77/agent-pr-firewall/releases/tag/v0.1.1
 
-## 5) Dev.to Article Outline
+## 5) Dev.to Short Launch Article (T+60)
 
 Title:
 
 How I built a PR firewall for AI-era code review on GitHub
 
-Sections:
+Structure:
 
 1. Why CI alone was not enough
 2. The policy model (pass/warn/block)
@@ -127,11 +127,35 @@ Sections:
 6. Observability and failure handling
 7. Lessons learned and next steps
 
-## 6) Demo Script (2-3 Minutes)
+Mandatory links to include:
 
-1. Open PR that touches `infra/` and lacks issue reference.
-2. Show check run `agent-pr-firewall` -> blocked.
-3. Show managed comment with findings.
-4. Fix PR body and remove risky change.
-5. Re-run via new commit -> check moves to pass/warn.
-6. Show `/metrics` counter increment.
+- Repo: https://github.com/Archangel-77/agent-pr-firewall
+- Release: https://github.com/Archangel-77/agent-pr-firewall/releases/tag/v0.1.1
+- Proof PR/checks: https://github.com/Archangel-77/agent-pr-firewall/pull/2
+
+## 6) GitHub Discussions Seed Threads (T+70)
+
+Live threads:
+
+- `https://github.com/Archangel-77/agent-pr-firewall/discussions/3`
+- `https://github.com/Archangel-77/agent-pr-firewall/discussions/4`
+
+Reference titles/bodies (for reuse in future launches):
+
+Title 1: `What PR policies do you need?`
+Body 1:
+`If you use PR guardrails today, which rules are most important in your workflow? Looking for practical policy requests and default threshold feedback.`
+
+Title 2: `Share blocked PR examples / false positives`
+Body 2:
+`If the firewall blocked or warned on one of your PRs, share the case here. Include what happened and what behavior you expected so we can tune defaults.`
+
+## 7) End-of-Day Proof Update (T+480)
+
+Post this as an update on X or as a top comment in one Reddit thread:
+
+`Launch day update for agent-pr-firewall: live on GitHub with v0.1.1, checks running on real PRs, and first community feedback coming in.`
+
+`Proof: https://github.com/Archangel-77/agent-pr-firewall/pull/2`
+
+`Repo: https://github.com/Archangel-77/agent-pr-firewall`

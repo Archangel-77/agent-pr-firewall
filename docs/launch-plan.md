@@ -1,5 +1,11 @@
 # Launch Plan (30 Days)
 
+For immediate execution, use:
+
+- `docs/launch-day-playbook.md` (timed 1-day rollout checklist)
+- `docs/launch-copy.md` (ready-to-post copy with live repo/release links)
+- `docs/launch-results.md` (channel + metric tracking)
+
 ## Goal
 
 Create repeatable community attention and first production users for `agent-pr-firewall`.
