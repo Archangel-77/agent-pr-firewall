@@ -74,14 +74,27 @@ export class PullRequestReporter {
     const commentBody = buildCommentBody(context);
     const checkRunConclusion = toCheckRunConclusion(context.evaluation.decision);
 
-    await this.githubClient.upsertManagedIssueComment({
-      installationId: context.installationId,
-      owner: context.owner,
-      repo: context.repo,
-      issueNumber: context.pullRequestNumber,
-      marker: MANAGED_COMMENT_MARKER,
-      body: commentBody,
-    });
+    let commentPublished = true;
+    try {
+      await this.githubClient.upsertManagedIssueComment({
+        installationId: context.installationId,
+        owner: context.owner,
+        repo: context.repo,
+        issueNumber: context.pullRequestNumber,
+        marker: MANAGED_COMMENT_MARKER,
+        body: commentBody,
+      });
+    } catch (error) {
+      commentPublished = false;
+      this.logger.warn(
+        {
+          repository: `${context.owner}/${context.repo}`,
+          pullRequestNumber: context.pullRequestNumber,
+          err: error,
+        },
+        "Failed to publish managed pull request comment; continuing with check run",
+      );
+    }
 
     await this.githubClient.createCheckRun({
       installationId: context.installationId,
@@ -101,6 +114,7 @@ export class PullRequestReporter {
         pullRequestNumber: context.pullRequestNumber,
         decision: context.evaluation.decision,
         findingCount: context.evaluation.findings.length,
+        commentPublished,
       },
       "Published PR firewall report",
     );
