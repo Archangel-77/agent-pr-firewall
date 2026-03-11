@@ -166,6 +166,14 @@ GitHub App settings that must be enabled:
   - Issues: `Write`
   - Checks: `Write`
 
+## Launch Checklist Script
+
+Run one command to validate readiness and print launch steps:
+
+```powershell
+pwsh ./scripts/launch-checklist.ps1 -Owner <org-or-user> -Repo <repo> -Domain <your-domain>
+```
+
 ## Decision Mapping
 
 Policy decision to Check Run conclusion:
