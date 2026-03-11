@@ -2,6 +2,17 @@
 
 GitHub App webhook service that evaluates pull requests against firewall policies and publishes results back to GitHub.
 
+## Positioning
+
+`agent-pr-firewall` is a merge guardrail for modern teams using human + AI coding workflows.
+It does not replace CI or code review; it adds policy-based risk checks before merge.
+
+Why teams adopt it:
+
+- Blocks risky PR patterns early (secrets, protected paths, missing traceability)
+- Keeps a single required GitHub check for merge governance
+- Provides audit-friendly, machine-readable decision history
+
 ## Current MVP
 
 - Receives GitHub webhooks on `POST /webhooks/github`
