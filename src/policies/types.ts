@@ -15,6 +15,12 @@ export interface PolicyContext {
   pullRequestFiles: readonly GitHubPullRequestFile[];
   settings: {
     protectedPathPrefixes: readonly string[];
+    sizeThresholds: {
+      warnChangedFiles: number;
+      blockChangedFiles: number;
+      warnChangedLines: number;
+      blockChangedLines: number;
+    };
   };
 }
 

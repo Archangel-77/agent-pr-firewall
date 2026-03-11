@@ -1,5 +1,6 @@
 import { draftPullRequestPolicy } from "./rules/draft-pr-policy.js";
 import { issueReferencePolicy } from "./rules/issue-reference-policy.js";
+import { pullRequestSizePolicy } from "./rules/pr-size-policy.js";
 import { pullRequestDescriptionPolicy } from "./rules/pr-description-policy.js";
 import { protectedPathsPolicy } from "./rules/protected-paths-policy.js";
 import { secretPatternPolicy } from "./rules/secret-pattern-policy.js";
@@ -10,5 +11,6 @@ export const defaultPolicies: readonly Policy[] = [
   issueReferencePolicy,
   protectedPathsPolicy,
   secretPatternPolicy,
+  pullRequestSizePolicy,
   pullRequestDescriptionPolicy,
 ];

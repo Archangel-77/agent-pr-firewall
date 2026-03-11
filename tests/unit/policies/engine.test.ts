@@ -34,6 +34,12 @@ function createContext(payload: PullRequestWebhookPayload): PolicyContext {
     pullRequestFiles: [],
     settings: {
       protectedPathPrefixes: [".github/workflows/", "infra/"],
+      sizeThresholds: {
+        warnChangedFiles: 25,
+        blockChangedFiles: 75,
+        warnChangedLines: 800,
+        blockChangedLines: 2000,
+      },
     },
   };
 }

@@ -17,6 +17,7 @@ GitHub App webhook service that evaluates pull requests against firewall policie
   - `issue-reference` (block if PR body has no issue/ticket reference)
   - `protected-paths` (block if protected directories are changed)
   - `secret-patterns` (block if secret-like additions appear in diffs)
+  - `pr-size` (warn/block when changed files or lines exceed thresholds)
   - `pr-description` (warn if description is too short)
 - Publishes results to GitHub:
   - Upserts a managed PR comment
@@ -64,6 +65,10 @@ Copy values from `.env.example` into your shell environment:
 - `LOG_LEVEL` (default `info`)
 - `GITHUB_API_BASE_URL` (default `https://api.github.com`)
 - `FIREWALL_PROTECTED_PATH_PREFIXES` (comma-separated path prefixes)
+- `FIREWALL_MAX_CHANGED_FILES_WARN`
+- `FIREWALL_MAX_CHANGED_FILES_BLOCK`
+- `FIREWALL_MAX_CHANGED_LINES_WARN`
+- `FIREWALL_MAX_CHANGED_LINES_BLOCK`
 - `GITHUB_APP_ID`
 - `GITHUB_WEBHOOK_SECRET`
 - `GITHUB_PRIVATE_KEY` (supports `\n`-escaped format)

@@ -53,6 +53,12 @@ describe("handlePullRequestEvent", () => {
         report,
       } as unknown as PullRequestReporter,
       protectedPathPrefixes: ["infra/"],
+      sizeThresholds: {
+        warnChangedFiles: 25,
+        blockChangedFiles: 75,
+        warnChangedLines: 800,
+        blockChangedLines: 2000,
+      },
     });
 
     expect(listPullRequestFiles).toHaveBeenCalledOnce();
@@ -76,6 +82,12 @@ describe("handlePullRequestEvent", () => {
         report,
       } as unknown as PullRequestReporter,
       protectedPathPrefixes: ["infra/"],
+      sizeThresholds: {
+        warnChangedFiles: 25,
+        blockChangedFiles: 75,
+        warnChangedLines: 800,
+        blockChangedLines: 2000,
+      },
     });
 
     const evaluation = report.mock.calls[0]?.[0].evaluation;

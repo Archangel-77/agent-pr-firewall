@@ -61,7 +61,13 @@ function parsePullRequestFile(value: unknown): GitHubPullRequestFile | null {
     return null;
   }
 
-  if (typeof value.filename !== "string" || typeof value.status !== "string") {
+  if (
+    typeof value.filename !== "string" ||
+    typeof value.status !== "string" ||
+    (value.additions !== undefined && typeof value.additions !== "number") ||
+    (value.deletions !== undefined && typeof value.deletions !== "number") ||
+    (value.changes !== undefined && typeof value.changes !== "number")
+  ) {
     return null;
   }
 
@@ -76,6 +82,18 @@ function parsePullRequestFile(value: unknown): GitHubPullRequestFile | null {
 
   if (typeof value.patch === "string") {
     file.patch = value.patch;
+  }
+
+  if (typeof value.additions === "number") {
+    file.additions = value.additions;
+  }
+
+  if (typeof value.deletions === "number") {
+    file.deletions = value.deletions;
+  }
+
+  if (typeof value.changes === "number") {
+    file.changes = value.changes;
   }
 
   return file;

@@ -34,6 +34,12 @@ function createContext(fileNames: string[]): PolicyContext {
     })),
     settings: {
       protectedPathPrefixes: ["infra/", ".github/workflows/"],
+      sizeThresholds: {
+        warnChangedFiles: 25,
+        blockChangedFiles: 75,
+        warnChangedLines: 800,
+        blockChangedLines: 2000,
+      },
     },
   };
 }

@@ -12,6 +12,10 @@ const logLevels = [
 
 const defaultProtectedPathPrefixes =
   ".github/workflows/,infra/,terraform/,deploy/,ops/,production/";
+const defaultWarnChangedFiles = 25;
+const defaultBlockChangedFiles = 75;
+const defaultWarnChangedLines = 800;
+const defaultBlockChangedLines = 2000;
 
 function parseCommaSeparatedPrefixes(value: string): string[] {
   return value
@@ -32,6 +36,26 @@ const envSchema = z.object({
     .string()
     .default(defaultProtectedPathPrefixes)
     .transform((value) => parseCommaSeparatedPrefixes(value)),
+  FIREWALL_MAX_CHANGED_FILES_WARN: z.coerce.number().int().min(1).default(defaultWarnChangedFiles),
+  FIREWALL_MAX_CHANGED_FILES_BLOCK: z.coerce.number().int().min(1).default(defaultBlockChangedFiles),
+  FIREWALL_MAX_CHANGED_LINES_WARN: z.coerce.number().int().min(1).default(defaultWarnChangedLines),
+  FIREWALL_MAX_CHANGED_LINES_BLOCK: z.coerce.number().int().min(1).default(defaultBlockChangedLines),
+}).superRefine((value, ctx) => {
+  if (value.FIREWALL_MAX_CHANGED_FILES_WARN > value.FIREWALL_MAX_CHANGED_FILES_BLOCK) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["FIREWALL_MAX_CHANGED_FILES_WARN"],
+      message: "must be less than or equal to FIREWALL_MAX_CHANGED_FILES_BLOCK",
+    });
+  }
+
+  if (value.FIREWALL_MAX_CHANGED_LINES_WARN > value.FIREWALL_MAX_CHANGED_LINES_BLOCK) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["FIREWALL_MAX_CHANGED_LINES_WARN"],
+      message: "must be less than or equal to FIREWALL_MAX_CHANGED_LINES_BLOCK",
+    });
+  }
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

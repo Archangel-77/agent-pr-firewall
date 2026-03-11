@@ -33,6 +33,9 @@ export interface GitHubPullRequestFile {
   filename: string;
   status: string;
   patch?: string;
+  additions?: number;
+  deletions?: number;
+  changes?: number;
 }
 
 export interface PullRequestWebhookPayload {

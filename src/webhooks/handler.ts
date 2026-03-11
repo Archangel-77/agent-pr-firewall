@@ -130,6 +130,12 @@ export function createGitHubWebhookHandler(env: AppEnv, logger: AppLogger) {
       githubClient,
       reporter,
       protectedPathPrefixes: env.FIREWALL_PROTECTED_PATH_PREFIXES,
+      sizeThresholds: {
+        warnChangedFiles: env.FIREWALL_MAX_CHANGED_FILES_WARN,
+        blockChangedFiles: env.FIREWALL_MAX_CHANGED_FILES_BLOCK,
+        warnChangedLines: env.FIREWALL_MAX_CHANGED_LINES_WARN,
+        blockChangedLines: env.FIREWALL_MAX_CHANGED_LINES_BLOCK,
+      },
     });
 
     return {

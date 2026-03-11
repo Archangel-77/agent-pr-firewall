@@ -37,6 +37,12 @@ function createContext(patch: string): PolicyContext {
     ],
     settings: {
       protectedPathPrefixes: [],
+      sizeThresholds: {
+        warnChangedFiles: 25,
+        blockChangedFiles: 75,
+        warnChangedLines: 800,
+        blockChangedLines: 2000,
+      },
     },
   };
 }

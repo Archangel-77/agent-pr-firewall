@@ -21,6 +21,12 @@ export interface PullRequestEventDependencies {
   githubClient: GitHubApiClient;
   reporter: PullRequestReporter;
   protectedPathPrefixes: readonly string[];
+  sizeThresholds: {
+    warnChangedFiles: number;
+    blockChangedFiles: number;
+    warnChangedLines: number;
+    blockChangedLines: number;
+  };
 }
 
 function withFileInspectionFailure(evaluation: PolicyEvaluation): PolicyEvaluation {
@@ -82,6 +88,7 @@ export async function handlePullRequestEvent(
     pullRequestFiles,
     settings: {
       protectedPathPrefixes: dependencies.protectedPathPrefixes,
+      sizeThresholds: dependencies.sizeThresholds,
     },
   });
 
