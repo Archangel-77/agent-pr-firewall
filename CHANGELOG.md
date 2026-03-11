@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows Semantic Versioning.
 
+## [0.1.1] - 2026-03-11
+
+### Added
+
+- Unit tests for reporter behavior when PR comment upsert fails but check run publication should continue.
+- Git ignore pattern for GitHub App key files (`*.private-key.pem`).
+
+### Fixed
+
+- Reporter now continues to publish the `agent-pr-firewall` check run even if managed PR comment creation/update fails with GitHub API `403`.
+- Branch hardening script now fails fast and surfaces clear API error details on authentication/authorization failures instead of printing a false success message.
+
 ## [0.1.0] - 2026-03-11
 
 ### Added

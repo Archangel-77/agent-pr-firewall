@@ -158,6 +158,14 @@ $env:GITHUB_TOKEN="<token-with-repo-admin>"
 pwsh ./scripts/setup-github-hardening.ps1 -Owner <org-or-user> -Repo <repo> -Branch main -WebhookUrl https://<your-domain>
 ```
 
+Token requirements for `scripts/setup-github-hardening.ps1`:
+
+- Fine-grained PAT:
+  - Repository access to your target repository
+  - Repository permission `Administration: Read and write`
+- Classic PAT:
+  - `repo` scope
+
 GitHub App settings that must be enabled:
 
 - Webhook event: `pull_request`
@@ -165,6 +173,27 @@ GitHub App settings that must be enabled:
   - Pull requests: `Read`
   - Issues: `Write`
   - Checks: `Write`
+
+## Troubleshooting
+
+`401 Invalid webhook signature`
+
+- Ensure GitHub App webhook URL points to the running endpoint: `https://<your-domain>/webhooks/github`
+- Ensure `GITHUB_WEBHOOK_SECRET` in your runtime environment exactly matches the GitHub App webhook secret.
+- Restart the service after changing env values.
+
+`403 Resource not accessible by integration`
+
+- Ensure GitHub App repository permissions are:
+  - Pull requests: `Read`
+  - Issues: `Read and write`
+  - Checks: `Read and write`
+- Re-save app installation scope in `Install App -> Configure` after permission changes.
+- If still failing, uninstall and reinstall the app on the target repository.
+
+Comment publish fails but check run still appears
+
+- As of `v0.1.1`, `agent-pr-firewall` still creates the required check run even if managed PR comment upsert fails.
 
 ## Launch Checklist Script
 
@@ -187,3 +216,12 @@ Policy decision to Check Run conclusion:
 - If a webhook payload has no `installation.id`, policy evaluation still runs but GitHub report publishing is skipped.
 - If pull request file inspection fails, the firewall returns a `block` decision (`file-inspection`) to fail closed.
 - The managed PR comment is updated in place using an internal marker to avoid comment spam.
+
+## Security Hygiene
+
+- Never commit secrets:
+  - `.env`
+  - GitHub App private keys (for example `*.private-key.pem`)
+  - access tokens
+- If a token is exposed, revoke it immediately and create a new token.
+- Keep production secrets in your runtime secret manager, not in git-tracked files.
